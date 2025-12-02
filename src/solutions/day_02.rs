@@ -1,3 +1,7 @@
+use std::io::Write;
+
+use itertools::Itertools;
+
 use crate::solution::Solution;
 
 #[derive(Clone, Copy, Debug)]
@@ -18,16 +22,38 @@ impl IdRange {
 struct Id(u64);
 
 impl Id {
-    fn contains_repeat(&self) -> bool {
-        let s = self.0.to_string();
+    fn contains_double_repeat(&self, buf: &mut Vec<u8>) -> bool {
+        buf.clear();
+        write!(buf, "{}", self.0).unwrap();
 
-        if !s.len().is_multiple_of(2) {
+        if !buf.len().is_multiple_of(2) {
             return false;
         }
 
-        let (left, right) = s.split_at(s.len() / 2);
+        let (left, right) = buf.split_at(buf.len() / 2);
 
         left == right
+    }
+
+    fn contains_any_repeat(&self, buf: &mut Vec<u8>) -> bool {
+        if self.contains_double_repeat(buf) {
+            return true;
+        }
+
+        buf.clear();
+        write!(buf, "{}", self.0).unwrap();
+
+        for num_parts in 2..=buf.len() {
+            if !buf.len().is_multiple_of(num_parts) {
+                continue;
+            }
+
+            if buf.chunks_exact(buf.len() / num_parts).all_equal() {
+                return true;
+            }
+        }
+
+        false
     }
 }
 
@@ -43,10 +69,22 @@ impl Solution for Day02 {
     }
 
     fn part1(&self) -> String {
+        let mut buf = Vec::with_capacity(10);
+
         self.ranges
             .iter()
             .flat_map(IdRange::ids)
-            .filter_map(|id| id.contains_repeat().then_some(id.0))
+            .filter_map(|id| id.contains_double_repeat(&mut buf).then_some(id.0))
+            .sum::<u64>()
+            .to_string()
+    }
+
+    fn part2(&self) -> String {
+        let mut buf = Vec::with_capacity(10);
+        self.ranges
+            .iter()
+            .flat_map(IdRange::ids)
+            .filter_map(|id| id.contains_any_repeat(&mut buf).then_some(id.0))
             .sum::<u64>()
             .to_string()
     }
