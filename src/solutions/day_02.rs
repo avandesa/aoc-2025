@@ -40,15 +40,14 @@ impl Id {
             return true;
         }
 
-        buf.clear();
-        write!(buf, "{}", self.0).unwrap();
+        // buffer has already been cleared and written
 
         for num_parts in 2..=buf.len() {
             if !buf.len().is_multiple_of(num_parts) {
                 continue;
             }
 
-            if buf.chunks_exact(buf.len() / num_parts).all_equal() {
+            if buf.chunks(buf.len() / num_parts).all_equal() {
                 return true;
             }
         }
