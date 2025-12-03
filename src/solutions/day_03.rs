@@ -35,6 +35,34 @@ impl Bank {
 
         max_l * 10 + max_r
     }
+
+    fn max_12_joltage(&self) -> u64 {
+        // Initialize with the first 12 elements
+        let mut maxes: Vec<_> = self.0[0..12].into();
+
+        for next in self.0.iter().skip(12).copied() {
+            // If any element is smaller than the one to its right, pop it out and replace it with
+            // the next in the bank
+            if let Some(i) = maxes
+                .windows(2)
+                .enumerate()
+                .find_map(|(i, w)| (w[0] < w[1]).then_some(i))
+            {
+                maxes.remove(i);
+                maxes.push(next);
+            } else if *maxes.last().unwrap() < next {
+                maxes.pop();
+                maxes.push(next);
+            }
+        }
+
+        maxes
+            .iter()
+            .rev()
+            .enumerate()
+            .map(|(pow, d)| 10u64.pow(pow as u32) * *d as u64)
+            .sum()
+    }
 }
 
 #[derive(Debug)]
@@ -53,6 +81,14 @@ impl Solution for Day03 {
             .iter()
             .map(Bank::max_joltage)
             .sum::<u32>()
+            .to_string()
+    }
+
+    fn part2(&self) -> String {
+        self.banks
+            .iter()
+            .map(Bank::max_12_joltage)
+            .sum::<u64>()
             .to_string()
     }
 }
