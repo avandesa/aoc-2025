@@ -31,6 +31,28 @@ impl Grid<Tile> {
 
         Self { grid, w, h }
     }
+
+    fn tile_is_accessible(&self, coords: Coords) -> bool {
+        let adjacent_paper = self
+            .surroundings(coords)
+            .filter(|s| *s == Tile::Paper)
+            .count();
+        adjacent_paper < 4
+    }
+
+    fn remove_accessible(&mut self) -> usize {
+        let mut removed = 0;
+
+        for i in 0..self.grid.len() {
+            let coords = self.i_to_coords(i);
+            if self.grid[i] == Tile::Paper && self.tile_is_accessible(coords) {
+                self.grid[i] = Tile::Empty;
+                removed += 1;
+            }
+        }
+
+        removed
+    }
 }
 
 impl<T> Grid<T> {
@@ -51,14 +73,14 @@ impl<T> Grid<T> {
 
     fn surroundings_coords(&self, coords: Coords) -> impl Iterator<Item = Coords> {
         [
+            self.row_sub(coords).and_then(|coords| self.col_sub(coords)), // NW
             self.row_sub(coords),                                         // N
             self.row_sub(coords).and_then(|coords| self.col_add(coords)), // NE
             self.col_add(coords),                                         // E
-            self.row_add(coords).and_then(|coords| self.col_add(coords)), // SE
-            self.row_add(coords),                                         // S
-            self.row_add(coords).and_then(|coords| self.col_sub(coords)), // SW
             self.col_sub(coords),                                         // W
-            self.row_sub(coords).and_then(|coords| self.col_sub(coords)), // NW
+            self.row_add(coords).and_then(|coords| self.col_sub(coords)), // SW
+            self.row_add(coords),                                         // S
+            self.row_add(coords).and_then(|coords| self.col_add(coords)), // SE
         ]
         .into_iter()
         .flatten()
@@ -118,19 +140,24 @@ impl Solution for Day04 {
     fn part1(&self) -> String {
         self.grid
             .tiles()
-            .filter(|(coords, t)| {
-                if *t == Tile::Empty {
-                    return false;
-                }
-                let adjacent_paper = self
-                    .grid
-                    .surroundings(*coords)
-                    .filter(|s| *s == Tile::Paper)
-                    .count();
-
-                adjacent_paper < 4
-            })
+            .filter(|(coords, t)| *t == Tile::Paper && self.grid.tile_is_accessible(*coords))
             .count()
             .to_string()
+    }
+
+    fn part2(&self) -> String {
+        let mut total_removed = 0;
+        let mut grid = self.grid.clone();
+
+        loop {
+            let removed = grid.remove_accessible();
+            if removed == 0 {
+                break;
+            } else {
+                total_removed += removed;
+            }
+        }
+
+        total_removed.to_string()
     }
 }
