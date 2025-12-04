@@ -40,13 +40,25 @@ impl Grid<Tile> {
         adjacent_paper < 4
     }
 
+    fn count_accessible(&self) -> usize {
+        self.tiles()
+            .filter(|(coords, t)| *t == Tile::Paper && self.tile_is_accessible(*coords))
+            .count()
+    }
+
     fn remove_accessible(&mut self) -> usize {
         let mut removed = 0;
 
         for i in 0..self.grid.len() {
             let coords = self.i_to_coords(i);
-            if self.grid[i] == Tile::Paper && self.tile_is_accessible(coords) {
-                self.grid[i] = Tile::Empty;
+
+            // SAFETY: `i` is less than `self.grid.len()`
+            let t = unsafe { self.grid.get_unchecked(i) };
+
+            if *t == Tile::Paper && self.tile_is_accessible(coords) {
+                // SAFETY: `i` is elss than `self.grid.len()`
+                unsafe { *self.grid.get_unchecked_mut(i) = Tile::Empty };
+
                 removed += 1;
             }
         }
@@ -56,9 +68,10 @@ impl Grid<Tile> {
 }
 
 impl<T> Grid<T> {
-    fn get(&self, Coords(r, c): Coords) -> &T {
-        let i = r * self.w + c;
-        &self.grid[i]
+    /// SAFETY: the coordinates must be in-bounds
+    unsafe fn get_unchecked(&self, coords: Coords) -> &T {
+        let i = self.coords_to_i(coords);
+        unsafe { self.grid.get_unchecked(i) }
     }
 
     fn tiles(&self) -> impl Iterator<Item = (Coords, T)>
@@ -72,6 +85,7 @@ impl<T> Grid<T> {
     }
 
     fn surroundings_coords(&self, coords: Coords) -> impl Iterator<Item = Coords> {
+        assert!(self.coords_to_i(coords) < self.grid.len());
         [
             self.row_sub(coords).and_then(|coords| self.col_sub(coords)), // NW
             self.row_sub(coords),                                         // N
@@ -90,7 +104,10 @@ impl<T> Grid<T> {
     where
         T: Copy,
     {
-        self.surroundings_coords(coords).map(|c| *self.get(c))
+        self.surroundings_coords(coords).map(|c| {
+            // SAFETY: the coords are guaranteed to be in-bounds
+            unsafe { *self.get_unchecked(c) }
+        })
     }
 
     fn i_to_coords(&self, i: usize) -> Coords {
@@ -100,6 +117,10 @@ impl<T> Grid<T> {
         let c = i - r * self.w;
 
         Coords(r, c)
+    }
+
+    fn coords_to_i(&self, Coords(r, c): Coords) -> usize {
+        r * self.w + c
     }
 
     fn row_sub(&self, Coords(r, c): Coords) -> Option<Coords> {
@@ -138,11 +159,7 @@ impl Solution for Day04 {
     }
 
     fn part1(&self) -> String {
-        self.grid
-            .tiles()
-            .filter(|(coords, t)| *t == Tile::Paper && self.grid.tile_is_accessible(*coords))
-            .count()
-            .to_string()
+        self.grid.count_accessible().to_string()
     }
 
     fn part2(&self) -> String {
