@@ -34,4 +34,12 @@ impl Solution for Day05 {
             .count()
             .to_string()
     }
+
+    fn part2(&self) -> String {
+        self.ranges
+            .iter()
+            .map(|r| r.end() - r.start() + 1)
+            .sum::<u64>()
+            .to_string()
+    }
 }
