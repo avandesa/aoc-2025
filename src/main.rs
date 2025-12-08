@@ -53,6 +53,7 @@ fn main() -> Result<()> {
         4 => solver!(Day04, raw_input),
         5 => solver!(Day05, raw_input),
         6 => solver!(Day06, raw_input),
+        7 => solver!(Day07, raw_input),
         _ => bail!("invalid day: `{}`", args.day),
     };
     println!("Parsed input int {input_build_time:#?}");
