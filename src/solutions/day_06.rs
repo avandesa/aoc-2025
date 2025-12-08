@@ -116,7 +116,8 @@ impl Solution for Day06 {
     fn with_input(input: String) -> Self {
         let lines = input
             .lines()
-            .filter_map(|l| (!l.is_empty()).then(|| l.bytes().collect_vec()))
+            .filter(|l| !l.is_empty())
+            .map(|l| l.bytes().collect_vec())
             .collect();
         Self { lines }
     }
