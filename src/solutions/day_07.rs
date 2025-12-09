@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::collections::HashMap;
 
 use itertools::Itertools;
 
@@ -34,23 +34,11 @@ impl ManifoldState {
     }
 }
 
-impl Display for ManifoldState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for s in &self.0 {
-            match s {
-                State::Empty => '.'.fmt(f)?,
-                State::Beam => '|'.fmt(f)?,
-            }
-        }
-        Ok(())
-    }
-}
-
 #[derive(Debug)]
 pub struct Day07 {
     width: usize,
     beam_source: usize,
-    splitter_locations: Vec<Vec<usize>>,
+    splitters: Vec<Vec<usize>>,
 }
 
 impl Solution for Day07 {
@@ -58,7 +46,7 @@ impl Solution for Day07 {
         let width = input.find('\n').unwrap();
         let beam_source = input.find('S').unwrap();
 
-        let splitter_locations = input
+        let splitters = input
             .lines()
             .skip(2)
             .enumerate()
@@ -75,17 +63,38 @@ impl Solution for Day07 {
         Self {
             width,
             beam_source,
-            splitter_locations,
+            splitters,
         }
     }
 
     fn part1(&self) -> String {
         let mut state = ManifoldState::new(self.width, self.beam_source);
         let mut activations = 0;
-        for splitters in &self.splitter_locations {
+        for splitters in &self.splitters {
             activations += state.split(splitters);
         }
 
         activations.to_string()
+    }
+
+    fn part2(&self) -> String {
+        let mut map = HashMap::<(usize, usize), u64>::new();
+
+        for (i, row) in self.splitters.iter().enumerate().rev() {
+            for j in row {
+                let left_child_count = (i..self.splitters.len())
+                    .find_map(|i| map.get(&(i, j - 1)))
+                    .copied()
+                    .unwrap_or(1);
+                let right_child_count = (i..self.splitters.len())
+                    .find_map(|i| map.get(&(i, j + 1)))
+                    .copied()
+                    .unwrap_or(1);
+
+                map.insert((i, *j), left_child_count + right_child_count);
+            }
+        }
+
+        map.get(&(0, self.beam_source)).unwrap().to_string()
     }
 }
