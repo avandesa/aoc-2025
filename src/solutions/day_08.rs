@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use itertools::Itertools;
-use petgraph::prelude::*;
+use petgraph::{
+    algo::{connected_components, kosaraju_scc},
+    prelude::*,
+};
 
 use crate::solution::Solution;
 
@@ -66,11 +69,47 @@ impl Solution for Day08 {
             graph.add_edge(*node_a, *node_b, ());
         }
 
-        petgraph::algo::kosaraju_scc(&graph)
+        kosaraju_scc(&graph)
             .into_iter()
             .map(|scc| scc.len())
             .k_largest(3)
             .product::<usize>()
             .to_string()
+    }
+
+    fn part2(&self) -> String {
+        let mut map = HashMap::with_capacity(self.boxes.len());
+        let mut graph = Graph::with_capacity(self.boxes.len(), 1000);
+
+        for jbox in &self.boxes {
+            let node = graph.add_node(*jbox);
+            map.insert(*jbox, node);
+        }
+
+        let mut distances = Vec::with_capacity(499500);
+        distances.extend(
+            self.boxes
+                .iter()
+                .tuple_combinations()
+                .map(|(a, b)| (a.distance_to(b), a, b)),
+        );
+
+        distances.sort_by(|(dist_a, _, _), (dist_b, _, _)| dist_a.partial_cmp(dist_b).unwrap());
+
+        for (_, a, b) in distances {
+            let node_a = map.get(a).unwrap();
+            let node_b = map.get(b).unwrap();
+
+            graph.add_edge(*node_a, *node_b, ());
+
+            if connected_components(&graph) == 1 {
+                return (a.0 * b.0).to_string();
+            }
+        }
+
+        panic!(
+            "graph not connected, {} components",
+            connected_components(&graph)
+        );
     }
 }
